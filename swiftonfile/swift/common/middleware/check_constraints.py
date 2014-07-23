@@ -14,12 +14,12 @@
 # limitations under the License.
 
 """
-``constraints`` is a middleware which will check storage policies 
+``constraints`` is a middleware which will check storage policies
 specific constraints on PUT requests.
 
 The ``constraints`` middleware should be added to the pipeline in your
-``/etc/swift/proxy-server.conf`` file, and a mapping of storage policies and 
-constraints classes be listed under the constraints filter section. 
+``/etc/swift/proxy-server.conf`` file, and a mapping of storage policies and
+constraints classes be listed under the constraints filter section.
 For example::
 
     [pipeline:main]
@@ -29,7 +29,7 @@ For example::
     use = egg:gluster-swift#constraints
     policy_2=gluster.swift.common.sof_constraints
 """
-    
+
 import sys
 from urllib import unquote
 from swift.common.utils import get_logger

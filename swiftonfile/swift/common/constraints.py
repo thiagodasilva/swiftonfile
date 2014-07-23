@@ -43,7 +43,7 @@ swift_check_object_creation = swift.common.constraints.check_object_creation
 
 
 # Define our new one which invokes the original
-def sof_check_object_creation(req, object_name):
+def check_object_creation(req, object_name):
     """
     Check to ensure that everything is alright about an object to be created.
     Monkey patches swift.common.constraints.check_object_creation, invoking

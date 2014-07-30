@@ -31,8 +31,9 @@ For example::
 """
 
 import sys
+import mimetypes
 from urllib import unquote
-from swift.common.utils import get_logger
+from swift.common.utils import get_logger, config_true_value
 from swift.common.swob import Request
 from swift.proxy.controllers.base import get_container_info
 
@@ -62,6 +63,23 @@ class CheckConstraintsMiddleware(object):
                 obj = unquote(obj)
             else:
                 return self.app(env, start_response)
+
+            # this block is copied from the swift/proxy/controllers/obj.py
+            # it is a hack to solve an issue in the functional tests where
+            # requests without a content-type header fails to pass because
+            # the check_object_creation function checks for this header.
+            # more dicussion is needed to resolve this issue.
+            # sometimes the 'content-type' header exists, but is set to None.
+            detect_content_type = \
+                config_true_value(request.headers.get('x-detect-content-type'))
+            if detect_content_type or not request.headers.get('content-type'):
+                guessed_type, _junk = mimetypes.guess_type(request.path_info)
+                request.headers['Content-Type'] = guessed_type or \
+                    'application/octet-stream'
+                #if detect_content_type:
+                #    request.headers.pop('x-detect-content-type')
+                #else:
+                #    content_type_manually_set = False
 
             # get the constraints module for the policy for this container
             # if policy is not specified in the configuration file, use

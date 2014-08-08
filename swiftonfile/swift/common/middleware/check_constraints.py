@@ -17,25 +17,30 @@
 ``constraints`` is a middleware which will check storage policies
 specific constraints on PUT requests.
 
-The ``constraints`` middleware should be added to the pipeline in your
-``/etc/swift/proxy-server.conf`` file, and a mapping of storage policies and
-constraints classes be listed under the constraints filter section.
+The ``sof_constraints`` middleware should be added to the pipeline in your
+``/etc/swift/proxy-server.conf`` file, and a mapping of storage policies
+using the swiftonfile object server should be listed in the 'policies'
+variable in the filter section.
+
+The swiftonfile constraints contains additional checks to make sure object
+names conform with POSIX filesystems file and directory naming limitations
+
 For example::
 
     [pipeline:main]
-    pipeline = catch_errors constraints cache proxy-server
+    pipeline = catch_errors sof_constraints cache proxy-server
 
-    [filter:constraints]
-    use = egg:gluster-swift#constraints
-    policy_2=gluster.swift.common.sof_constraints
+    [filter:sof_constraints]
+    use = egg:swift#sof_constraints
+    policies=policy_2
 """
 
-import sys
-import mimetypes
 from urllib import unquote
-from swift.common.utils import get_logger, config_true_value
+from swift.common.utils import get_logger
 from swift.common.swob import Request
 from swift.proxy.controllers.base import get_container_info
+from swiftonfile.swift.common.constraints import check_object_creation \
+    as sof_check_object_creation
 
 
 class CheckConstraintsMiddleware(object):
@@ -44,10 +49,7 @@ class CheckConstraintsMiddleware(object):
         self.app = app
         self.logger = get_logger(conf, log_route='constraints')
         self.swift_dir = conf.get('swift_dir', '/etc/swift')
-        self.policy_constraints = {}
-        for conf_key in conf:
-            if conf_key.startswith('policy_'):
-                self.policy_constraints[conf_key] = conf[conf_key]
+        self.policies = conf.get('policies', '')
 
     def __call__(self, env, start_response):
         request = Request(env)
@@ -64,43 +66,12 @@ class CheckConstraintsMiddleware(object):
             else:
                 return self.app(env, start_response)
 
-            # this block is copied from the swift/proxy/controllers/obj.py
-            # it is a hack to solve an issue in the functional tests where
-            # requests without a content-type header fails to pass because
-            # the check_object_creation function checks for this header.
-            # more dicussion is needed to resolve this issue.
-            # sometimes the 'content-type' header exists, but is set to None.
-            detect_content_type = \
-                config_true_value(request.headers.get('x-detect-content-type'))
-            if detect_content_type or not request.headers.get('content-type'):
-                guessed_type, _junk = mimetypes.guess_type(request.path_info)
-                request.headers['Content-Type'] = guessed_type or \
-                    'application/octet-stream'
-                #if detect_content_type:
-                #    request.headers.pop('x-detect-content-type')
-                #else:
-                #    content_type_manually_set = False
-
-            # get the constraints module for the policy for this container
-            # if policy is not specified in the configuration file, use
-            # default value (e.g., 'swift.common.constraints')
             container_info = get_container_info(
                 env, self.app, swift_source='LE')
-            try:
-                policy_idx = 'policy_%s' % container_info['storage_policy']
-                constraint_module = self.policy_constraints[policy_idx]
-            except KeyError:
-                constraint_module = 'swift.common.constraints'
+            policy_idx = 'policy_%s' % container_info['storage_policy']
+            if policy_idx in self.policies:
+                env['swift.constraints'] = sof_check_object_creation
 
-            # load constraints module on the fly
-            self.logger.warn("constraint_module: %s" % constraint_module)
-            __import__(constraint_module)
-            check_object_creation = \
-                sys.modules[constraint_module].check_object_creation
-            error_response = check_object_creation(request, obj)
-            if error_response:
-                self.logger.warn("returning error: %s", error_response)
-                return error_response(env, start_response)
         return self.app(env, start_response)
 
 

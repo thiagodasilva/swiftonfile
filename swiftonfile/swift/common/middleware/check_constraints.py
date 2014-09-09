@@ -32,7 +32,7 @@ For example::
 
     [filter:sof_constraints]
     use = egg:swift#sof_constraints
-    policies=policy_2
+    policies=2,3
 """
 
 from urllib import unquote
@@ -68,9 +68,12 @@ class CheckConstraintsMiddleware(object):
 
             container_info = get_container_info(
                 env, self.app, swift_source='LE')
-            policy_idx = 'policy_%s' % container_info['storage_policy']
+            policy_idx = container_info['storage_policy']
             if policy_idx in self.policies:
-                env['swift.constraints'] = sof_check_object_creation
+                error_response = sof_check_object_creation(request, obj)
+                if error_response:
+                    self.logger.warn("returning error: %s", error_response)
+                    return error_response(env, start_response)
 
         return self.app(env, start_response)
 

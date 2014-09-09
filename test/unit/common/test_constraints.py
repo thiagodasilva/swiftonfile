@@ -41,8 +41,6 @@ class TestConstraints(unittest.TestCase):
         self.assertTrue(cnt.validate_obj_name_component(''))
 
     def test_check_object_creation(self):
-        with patch('swiftonfile.swift.common.constraints.swift_check_object_creation',
-                   mock_check_object_creation):
-            req = Mock()
-            req.headers = []
-            self.assertFalse(cnt.check_object_creation(req, 'dir/z'))
+        req = Mock()
+        req.headers = []
+        self.assertFalse(cnt.check_object_creation(req, 'dir/z'))

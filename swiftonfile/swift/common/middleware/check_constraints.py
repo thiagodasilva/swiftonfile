@@ -67,7 +67,7 @@ class CheckConstraintsMiddleware(object):
                 return self.app(env, start_response)
 
             container_info = get_container_info(
-                env, self.app, swift_source='LE')
+                env, self.app)
             policy_idx = container_info['storage_policy']
             if policy_idx in self.policies:
                 error_response = sof_check_object_creation(request, obj)

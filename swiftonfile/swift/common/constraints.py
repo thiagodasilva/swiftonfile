@@ -38,7 +38,6 @@ def validate_obj_name_component(obj):
     return ''
 
 
-# Define our new one which invokes the original
 def check_object_creation(req, object_name):
     """
     Check to ensure that everything is alright about an object to be created.

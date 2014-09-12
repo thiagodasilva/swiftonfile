@@ -353,6 +353,7 @@ class TestContainer(Base):
     set_up = False
 
     def testContainerNameLimit(self):
+        raise SkipTest('Swift-On-File has different limits')
         limit = load_constraint('max_container_name_length')
 
         for l in (limit - 100, limit - 10, limit - 1, limit,
@@ -973,6 +974,7 @@ class TestFile(Base):
             self.assert_status(404)
 
     def testNameLimit(self):
+        raise SkipTest('Swift-On-File has different limits')
         limit = load_constraint('max_object_name_length')
 
         for l in (1, 10, limit / 2, limit - 1, limit, limit + 1, limit * 2):

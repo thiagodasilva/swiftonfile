@@ -158,3 +158,31 @@ class TestSwiftOnFile(Base):
         # Confirm that Etag is present in response headers
         self.assert_(data_hash == object_item.info()['etag'])
         self.assert_status(200)
+
+    def test_SwiftOnFile_name_constraints(self):
+        file_name = "o" * 220
+        file_item = self.env.container.file(file_name)
+        self.assertTrue(file_item.write())
+        self.assert_status(201)
+
+        file_name = "o" * 221
+        file_item = self.env.container.file(file_name)
+        self.assertTrue(file_item.write())
+        self.assert_status(201)
+
+        file_name = "o" * 222
+        file_item = self.env.container.file(file_name)
+        self.assertRaises(ResponseError, file_item.write)
+        self.assert_status(400)
+
+        file_name = "subdir//object"
+        file_item = self.env.container.file(file_name)
+        self.assertRaises(ResponseError, file_item.write)
+        self.assert_status(400)
+
+        file_name = ".."
+        file_item = self.env.container.file(file_name)
+        self.assertRaises(ResponseError, file_item.write)
+        self.assert_status(400)
+
+
